@@ -1,13 +1,20 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useBlog } from '@/contexts/BlogContext';
 import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import PostCard from '@/components/PostCard';
 import Mascot from '@/components/Mascot';
 import { PenTool, BookOpen } from 'lucide-react';
+import { BlogPost } from '@/types/blog';
+import { useToast } from '@/hooks/use-toast';
 
 const PostsList: React.FC = () => {
-  const { posts } = useBlog();
+  const { posts, deletePost } = useBlog();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -32,6 +39,13 @@ const PostsList: React.FC = () => {
                 <PostCard 
                   post={post}
                   onClick={() => {/* Navigate to post detail if needed */}}
+                  onEdit={(post: BlogPost) => {
+                    navigate('/write', { state: { editPost: post } });
+                  }}
+                  onDelete={(id: string) => {
+                    setPostToDelete(id);
+                    setDeleteDialogOpen(true);
+                  }}
                 />
               </div>
             ))}
@@ -64,6 +78,35 @@ const PostsList: React.FC = () => {
           </Link>
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this diary entry? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (postToDelete) {
+                  await deletePost(postToDelete);
+                  toast({
+                    title: "Entry deleted",
+                    description: "Your diary entry has been deleted successfully.",
+                  });
+                  setPostToDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

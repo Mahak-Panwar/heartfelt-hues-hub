@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBlog } from '@/contexts/BlogContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,18 +7,28 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PenTool, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { BlogPost } from '@/types/blog';
 import Mascot from './Mascot';
 
 interface AddPostFormProps {
+  editPost?: BlogPost;
   onPostAdded?: () => void;
 }
 
-const AddPostForm: React.FC<AddPostFormProps> = ({ onPostAdded }) => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [author, setAuthor] = useState('You');
-  const { addPost, isLoading } = useBlog();
+const AddPostForm: React.FC<AddPostFormProps> = ({ editPost, onPostAdded }) => {
+  const [title, setTitle] = useState(editPost?.title || '');
+  const [content, setContent] = useState(editPost?.content || '');
+  const [author, setAuthor] = useState(editPost?.author || 'You');
+  const { addPost, editPost: updatePost, isLoading } = useBlog();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (editPost) {
+      setTitle(editPost.title);
+      setContent(editPost.content);
+      setAuthor(editPost.author);
+    }
+  }, [editPost]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,21 +43,32 @@ const AddPostForm: React.FC<AddPostFormProps> = ({ onPostAdded }) => {
     }
 
     try {
-      await addPost({
-        title: title.trim(),
-        content: content.trim(),
-        author: author.trim() || 'You'
-      });
+      if (editPost) {
+        await updatePost(editPost.id, {
+          title: title.trim(),
+          content: content.trim(),
+          author: author.trim() || 'You'
+        });
+        toast({
+          title: "Updated! ✨",
+          description: "Your diary entry has been updated beautifully.",
+        });
+      } else {
+        await addPost({
+          title: title.trim(),
+          content: content.trim(),
+          author: author.trim() || 'You'
+        });
+        toast({
+          title: "Beautiful! ✨",
+          description: "Your diary entry has been saved with love.",
+        });
+      }
 
       // Reset form
       setTitle('');
       setContent('');
       setAuthor('You');
-
-      toast({
-        title: "Beautiful! ✨",
-        description: "Your diary entry has been saved with love.",
-      });
 
       onPostAdded?.();
     } catch (error) {
@@ -65,7 +86,7 @@ const AddPostForm: React.FC<AddPostFormProps> = ({ onPostAdded }) => {
         <div className="flex items-center justify-center gap-3 mb-2">
           <Mascot />
           <CardTitle className="font-handwritten text-3xl text-primary">
-            Share Your Heart
+            {editPost ? 'Edit Your Heart' : 'Share Your Heart'}
           </CardTitle>
           <Heart className="text-primary" size={24} />
         </div>
@@ -130,7 +151,7 @@ const AddPostForm: React.FC<AddPostFormProps> = ({ onPostAdded }) => {
             ) : (
               <>
                 <Heart className="mr-2 h-5 w-5" />
-                Save to Diary
+                {editPost ? 'Update Entry' : 'Save to Diary'}
               </>
             )}
           </Button>

@@ -4,6 +4,8 @@ import { BlogPost, NewPostData, connectToDatabase } from '@/types/blog';
 interface BlogContextType {
   posts: BlogPost[];
   addPost: (post: NewPostData) => Promise<void>;
+  editPost: (id: string, post: NewPostData) => Promise<void>;
+  deletePost: (id: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -63,8 +65,43 @@ export const BlogProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const editPost = async (id: string, updatedData: NewPostData): Promise<void> => {
+    setIsLoading(true);
+    
+    try {
+      await connectToDatabase();
+      
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === id 
+            ? {
+                ...post,
+                title: updatedData.title,
+                content: updatedData.content,
+                author: updatedData.author || 'You',
+                excerpt: updatedData.content.substring(0, 120) + (updatedData.content.length > 120 ? '...' : '')
+              }
+            : post
+        )
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deletePost = async (id: string): Promise<void> => {
+    setIsLoading(true);
+    
+    try {
+      await connectToDatabase();
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== id));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <BlogContext.Provider value={{ posts, addPost, isLoading }}>
+    <BlogContext.Provider value={{ posts, addPost, editPost, deletePost, isLoading }}>
       {children}
     </BlogContext.Provider>
   );
